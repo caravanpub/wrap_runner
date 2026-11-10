@@ -1,0 +1,10 @@
+some style notes for variable naming
+
+pcre = compiled pcre regex
+pcre_a = pcre array
+pcre_l = pcre list
+re = regex
+cl = command line used for regexec against cre
+*_len = number of elements in array or list
+i, j, k are indicies and loop counters
+

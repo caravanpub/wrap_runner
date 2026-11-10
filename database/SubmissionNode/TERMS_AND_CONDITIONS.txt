@@ -1,0 +1,39 @@
+Please read the following terms and conditions carefully. 
+------------------------------------------------------------------
+
+1. By agreeing below, you accept any and all
+responsibility for any use of the script you are submitting, 
+regardless of whether you are the author or user of the script.
+
+2. You must review any submitted script to insure that it
+follows industry best practices for security, e.g. all environment
+variables and command line arguments should have appropriate 
+sanity checks. At no time should your script be able to violate
+any policy in the idocs:/etc/POLICY file.
+
+3. Upon sucessful submission, you will be given an ID for your script. Please
+save this ID and use it in any communication with the security team regarding
+this submission.
+
+4. Scripts with DEVEL roles will be purged from the database after 10 days
+to prevent accumulation of signatures for old, unmaintained, or even
+broken scripts in the database. You may resubmit the same DEVEL script 
+again if necessary and a new ID will be generated.
+
+5. Only finished scripts ( beta quality of better ) which have been
+suitably reviewed and debugged should be submitted with a non DEVEL role. 
+You agree that once a non DEVEL script is no longer needed,
+you will contact the security team with the ID so it may be purged from the
+list of allowed scripts. 
+
+6. If the submitted script is deemed to have vulnerabilities or
+to violate POLICY, the submitter will be required to address issues
+raised by the security team within a time frame commensurate with the
+severity of the risk the script poses. In serious cases, the script's 
+fingerprint will be PURGED from the database without any prior notice. 
+
+7. Use of this system is a PRIVILEGE extended to some users based on their
+need and ability. The security team reserves the right to at any time modify,
+suspend or revoke this privilege at its sole discretion.
+
+------------------------------------------------------------------

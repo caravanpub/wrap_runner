@@ -1,0 +1,11 @@
+# mode: query_only|cache_only|cache_first (mls enforcing systems should be
+# query_only at present)
+mode: cache_first
+# cache_expiry: hours after which cache is considered invalid
+cache_expiry: 72
+# cache_refresh: refresh cache if older than this many hours
+cache_refresh: 2
+# the url of the web api to the fingerprint database
+query_server: http://YOURSERVERHERE/wrapper/query_node.php
+
+

@@ -1,0 +1,44 @@
+#!/bin/bash
+
+PATH=/usr/pkg/bin:/usr/pkg/sbin:/usr/local/bin:/usr/local/etc:$PATH
+
+ssh fs-01 "bash -c 'test -f /opt/wrap_runner/submitted/.newfile' "
+
+if [ $? -ne 0 ];then
+   exit 0
+fi
+
+pushd /opt/wrap_runner/submitted 2>&1 > /dev/null 
+
+ssh fs-01 touch /opt/wrap_runner/submitted/.rsync_pending && rsync -a --ignore-existing --exclude=.newfile --exclude=.rsync_pending fs-01:`pwd`/\* .
+
+if [ ! $? -eq 0 ];then
+    echo could not fetch new files from fs-01, please investigate | Mail -s "failure in collected submitted scripts from fs-01" waddell@pbspro.com
+    exit 1
+fi
+
+ssh fs-01 rm -f /opt/wrap_runner/submitted/.rsync_pending /opt/wrap_runner/submitted/.newfile /opt/wrap_runner/submitted/\*
+
+shasum -a 256 `ls -1rt`  | awk '{print "store",$0}' > /tmp/pull_scripts.$$ 2>&1
+
+if [ ! $? -eq 0 ];then
+    cat /tmp/pull_scripts.$$ | Mail -s "an error occurred importing script fingerprints" waddell@pbspro.com
+    exit 1
+fi
+
+gdbmtool --file /tmp/pull_scripts.$$ ../wrapsums
+
+if [ ! $? -eq 0 ];then
+    cat /tmp/pull_scripts.$$ | Mail -s "an error occurred loading new script fingerprints" waddell@pbspro.com
+    exit 1
+fi
+
+mv * ../registered
+
+popd 2>&1 > /dev/null
+
+rm -f /tmp/pull_scripts.$$ 
+
+/usr/local/etc/master_cron_hash_publish.sh 2>&1  | Mail -s "new fingerprints pushed out" waddell@pbspro.com
+
+

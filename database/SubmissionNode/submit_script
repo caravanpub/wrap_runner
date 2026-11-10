@@ -1,0 +1,122 @@
+#!/bin/bash
+
+SECUREDIR=/opt/wrap_runner/submitted
+ADMIN_EMAIL="waddell@pbspro.com anamika.upadhyay@altair.com"
+ROLES=(QA QA-DEVEL SPM SPM-DEVEL)
+
+SCRIPTREGEX="^[[:alnum:]]{1}[-._[:alnum:]]{0,}$"
+ROLEREGEX="^(QA|SPM){1}(-DEVEL){0,1}$"
+ALLOWEDREGEX="^(waddell|ies|hirenk){1}$"
+EMAILREGEX="^([[:space:]]{0,}[-._[:alnum:]]{1,}@[.[:alpha:]]{0,}(pbspro|altair).com){1,}$"
+FILENAMEREGEX="^[-._/[:alnum:]]{1,}$"
+NOW=`date +"%s"`
+TANDC=/opt/wrap_runner/assets/TERMS_AND_CONDITIONS.txt
+
+usage()
+{
+    echo "usage: sudo submit_script script_file" 1>&2
+    echo "The filename of the script must begin with an alphanumeric character" 1>&2
+    echo "and consist of only dashes, periods, underscores or alphanumeric characters." 1>&2
+    exit 99
+}
+
+
+if [[ $# -ne 1 ]];then
+    usage
+else
+    if [[ !("$1" =~ $FILENAMEREGEX) ]];then
+	echo $1 is not a valid filename
+	exit 99
+    elif [ ! -f $1 ];then
+	echo file $1 does not exist
+	exit 99
+    fi
+    FILENAME=`basename $1`
+fi
+
+echo "Please provide one or more whitespace separated email addresses if"
+echo "you wish to receive confirmation of this submission."
+read -e -p "Email address(es): " EMAIL
+
+if [[ "$EMAIL" = "" || "$EMAIL" =~ $EMAILREGEX ]];then
+    echo An email receipt will be sent to $EMAIL
+else
+    echo The mail address provided was not one or more whitespace separated pbspro or altair email addresses
+    exit 99
+fi
+
+echo
+
+read -e -p "Select a ROLE for this script from { ${ROLES[*]} }:" ROLE
+if [[ `whoami` != "root" || "$SUDO_USER" = "" ]];then
+    usage
+fi
+    
+if [[ !( "$ROLE" =~ $ROLEREGEX ) ]];then
+    echo $ROLE is not a valid selection
+    exit 99
+elif [[ !( $FILENAME =~ $SCRIPTREGEX ) ]];then
+    usage
+fi
+
+#if [[ ! ( "$SUDO_USER" =~ $ALLOWEDREGEX ) ]];then
+#    echo User $SUDO_USER does not have permission to submit scripts
+#    exit 99
+#fi
+
+cat $TANDC
+
+read -e -p "Enter 'YES' to confirm that you have read and accept the above terms and conditions: " AGREE
+echo
+
+if [[ "$AGREE" != "YES" ]];then
+    echo Terms were not accepted. Aborting.
+    exit 1
+fi
+
+DESTNAME=`printf "%s%%%s%%%s%%%s" $FILENAME $ROLE $NOW $SUDO_USER`
+
+/usr/pkg/bin/php /opt/wrap_runner/assets/import.php $1 $DESTNAME `shasum -a 256 $1| awk '{print $1}'` $SUDO_USER $ROLE
+
+if [ $? -ne 0 ];then
+    echo import failed
+    exit 1
+fi
+
+i=0
+
+while [[ -f $SECUREDIR/.rsync_pending ]];do
+    echo waiting for sync process to complete before import
+    sleep 10
+    i=`expr $i + 1`
+    if [[ $i -gt 6 ]];then
+	echo A stale lockfile exists preventing submission. An email has been sent to the administrator.
+	ls -l $SECUREDIR/.rsync_pending | Mail -s "submit_script has a stale .rsync_pending lockfile" $ADMIN_EMAIL
+	exit 99
+    fi
+done
+
+/bin/cp $1 $SECUREDIR/$DESTNAME 2>&1 > /dev/null
+
+if [[ $? -ne 0 ]];then
+    echo an error was encountered submitting your script
+    exit 1
+fi
+
+touch $SECUREDIR/.newfile
+
+echo User $SUDO_USER submitted script $DESTNAME | Mail -s "new script $DESTNAME submitted to the wrap_runner database" -a $1 $ADMIN_EMAIL
+
+if [[ "$EMAIL" != "" ]];then
+    cat - <<EOF | Mail -s "new script with ID $DESTNAME submitted by $SUDO_USER" -a $1 -a $TANDC $EMAIL
+Your script has been accepted with ID $DESTNAME. A copy of the submitted
+script has been attached, along with a copy of the TERMS AND CONDITIONS 
+you [$SUDO_USER] agreed to.
+EOF
+
+fi
+
+echo your script has been submitted with id $DESTNAME
+
+exit 0
+
